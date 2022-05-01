@@ -13,23 +13,43 @@ import (
 	"strings"
 )
 
-// default password - this should be overridden with config
-var password = "nMF-Xff-uVe-jQz"
+const VERSION = "0.2.0"
 
-type ResetRequest struct {
-	Password string `json:password`
+// default password - this should be overridden with config
+var password string
+
+type QARequest struct {
+	Password    string `json:"password"`
+	Action      string `json:"action"`
+	Mode        string `json:"mode"`
+	RequestArg1 string `json:"reqarg1"`
+	RequestArg2 string `json:"reqarg2"`
 }
 
-type ResetResponse struct {
+type QAResponse struct {
 	Error     string `json:"error"`
 	CmdOutput string `json:"command_output"`
 }
 
-func doreset(w http.ResponseWriter, r *http.Request) {
-	var req ResetRequest
-	var resp ResetResponse
+func dbbackup(w http.ResponseWriter, r *http.Request) {
+	runfunc(w, r, "dbbackup", "dbbackup.psh")
+}
 
-	log.Println("Endpoint Hit: doreset")
+func doreset(w http.ResponseWriter, r *http.Request) {
+	runfunc(w, r, "doreset", "iisreset.exe")
+}
+
+func GetIP(r *http.Request) string {
+	forwarded := r.Header.Get("X-FORWARDED-FOR")
+	if forwarded != "" {
+		return forwarded
+	}
+	return r.RemoteAddr
+}
+
+func runfunc(w http.ResponseWriter, r *http.Request, m string, f string) {
+	var req QARequest
+	var resp QAResponse
 
 	reqBody, err0 := ioutil.ReadAll(r.Body)
 	if err0 != nil {
@@ -41,9 +61,11 @@ func doreset(w http.ResponseWriter, r *http.Request) {
 		resp.Error = err1.Error()
 	}
 
+	log.Printf("method=\"runfunc:%s\" clientip=\"%s\" action=\"%s\" function=\"%s\" mode=\"%s\" arg1=\"%s\" arg2=\"%s\" \n", m, GetIP(r), req.Action, f, req.Mode, req.RequestArg1, req.RequestArg2)
+
 	if req.Password == password {
 		log.Println("Password matched")
-		cmd := exec.Command("iisreset.exe")
+		cmd := exec.Command(f, req.RequestArg1, req.RequestArg2)
 		output, err := cmd.Output()
 
 		resp.CmdOutput = string(output)
@@ -52,18 +74,18 @@ func doreset(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(500)
 		}
 		log.Println("Command output:" + string(output))
-
 	} else {
 		resp.Error = "Invalid password"
 		w.WriteHeader(403)
 	}
-
 	json.NewEncoder(w).Encode(resp)
 	w.Header().Set("Content-Type", "application/json")
 }
 
 func handleRequests(password string, port string) {
 	http.HandleFunc("/api/v1/iisreset", doreset)
+	http.HandleFunc("/api/v1/dbbackup", dbbackup)
+	log.Printf("Server Started, version %s", VERSION)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
@@ -102,6 +124,5 @@ func main() {
 		fmt.Println("Error reading config file: " + configFile)
 		panic(err)
 	}
-
 	handleRequests(password, port)
 }
