@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-const VERSION = "0.2.0"
+const VERSION = "0.3.0_beta"
 
 // default password - this should be overridden with config
 var password string
