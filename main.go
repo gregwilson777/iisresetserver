@@ -31,8 +31,15 @@ type QAResponse struct {
 	CmdOutput string `json:"command_output"`
 }
 
+func ping(w http.ResponseWriter, r *http.Request) {
+	var resp QAResponse
+	resp.CmdOutput = "PONG"
+	json.NewEncoder(w).Encode(resp)
+	w.Header().Set("Content-Type", "application/json")
+}
+
 func dbbackup(w http.ResponseWriter, r *http.Request) {
-	runfunc(w, r, "dbbackup", "dbbackup.psh")
+	runfunc(w, r, "dbbackup", "dbbackup.ps1")
 }
 
 func doreset(w http.ResponseWriter, r *http.Request) {
@@ -85,6 +92,7 @@ func runfunc(w http.ResponseWriter, r *http.Request, m string, f string) {
 func handleRequests(password string, port string) {
 	http.HandleFunc("/api/v1/iisreset", doreset)
 	http.HandleFunc("/api/v1/dbbackup", dbbackup)
+	http.HandleFunc("/api/v1/ping", ping)
 	log.Printf("Server Started, version %s", VERSION)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
