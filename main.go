@@ -13,10 +13,11 @@ import (
 	"strings"
 )
 
-const VERSION = "0.3.0"
+const VERSION = "0.4.0"
 
 // default password - this should be overridden with config
 var password string
+var debug bool = true
 
 type QARequest struct {
 	Password    string `json:"password"`
@@ -63,12 +64,19 @@ func runfunc(w http.ResponseWriter, r *http.Request, m string, f string) {
 		resp.Error = err0.Error()
 	}
 
+	if debug {
+		fmt.Printf("%s \r\n", string(reqBody))
+	}
+
 	err1 := json.Unmarshal(reqBody, &req)
 	if err1 != nil {
 		resp.Error = err1.Error()
 	}
+	if debug {
+		fmt.Printf("System pass=[%s], req pass=[%s] \r\n", password, req.Password)
+	}
 
-	log.Printf("method=\"runfunc:%s\" clientip=\"%s\" action=\"%s\" function=\"%s\" mode=\"%s\" arg1=\"%s\" arg2=\"%s\" \n", m, GetIP(r), req.Action, f, req.Mode, req.RequestArg1, req.RequestArg2)
+	log.Printf("method=\"runfunc:%s\" clientip=\"%s\" action=\"%s\" function=\"%s\" mode=\"%s\" arg1=\"%s\" arg2=\"%s\" \r\n", m, GetIP(r), req.Action, f, req.Mode, req.RequestArg1, req.RequestArg2)
 
 	if req.Password == password {
 		log.Println("Password matched")
@@ -93,7 +101,7 @@ func handleRequests(password string, port string) {
 	http.HandleFunc("/api/v1/iisreset", doreset)
 	http.HandleFunc("/api/v1/dbbackup", dbbackup)
 	http.HandleFunc("/api/v1/ping", ping)
-	log.Printf("Server Started, version %s", VERSION)
+	log.Printf("Server Started, version %s\n\r", VERSION)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
