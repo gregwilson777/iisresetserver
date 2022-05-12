@@ -6,7 +6,15 @@ This simple server provides a way to:
 
 To start the server:
 ```
-qamanager -c configfile [-p port]
+qamanager -l logfile
 ```
-where configfile is a file that just contains a single string which serves as the "password" (only requests with the correct password will be served), 
-and port is an optional port number - the default port is 9991.
+where logfile is where the logs will be written, duh.
+
+You can add this as a windows service using sc.exe with something like the following commands:
+
+```azure
+sc.exe create QAManager type= own start= auto binpath= "C:\QA\qamanager.exe -l C:\QA\qa.log" displayname=QAManager 
+sc.exe description QAManager "QAManager service for remote IISReset/DBSnapshots" 
+sc.exe failure QAManager actions=restart/60000/restart/60000// reset=86400 
+sc.exe start QAManager 
+```
