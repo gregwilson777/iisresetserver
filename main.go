@@ -60,11 +60,11 @@ func ping(w http.ResponseWriter, r *http.Request) {
 }
 
 func dbbackup(w http.ResponseWriter, r *http.Request) {
-	runfunc(w, r, "dbbackup", "dbbackup.ps1")
+	runfunc(w, r, "dbbackup", "dbbackup.ps1", true)
 }
 
 func doreset(w http.ResponseWriter, r *http.Request) {
-	runfunc(w, r, "doreset", "iisreset.exe")
+	runfunc(w, r, "doreset", "iisreset.exe", false)
 }
 
 func GetIP(r *http.Request) string {
@@ -75,24 +75,26 @@ func GetIP(r *http.Request) string {
 	return r.RemoteAddr
 }
 
-func runfunc(w http.ResponseWriter, r *http.Request, m string, f string) {
+func runfunc(w http.ResponseWriter, r *http.Request, m string, f string, parseInput bool) {
 	var req QARequest
 	var resp QAResponse
 
-	reqBody, err0 := ioutil.ReadAll(r.Body)
-	if err0 != nil {
-		resp.Error = err0.Error()
-	}
+	if parseInput {
+		reqBody, err0 := ioutil.ReadAll(r.Body)
+		if err0 != nil {
+			resp.Error = err0.Error()
+		}
 
-	if debug {
-		log.Printf("%s \r\n", string(reqBody))
-	}
+		if debug {
+			log.Printf("%s \r\n", string(reqBody))
+		}
 
-	err1 := json.Unmarshal(reqBody, &req)
-	if err1 != nil {
-		resp.Error = err1.Error()
+		err1 := json.Unmarshal(reqBody, &req)
+		if err1 != nil {
+			resp.Error = err1.Error()
+		}
 	}
-
+	
 	log.Printf("method=\"runfunc:%s\" clientip=\"%s\" action=\"%s\" function=\"%s\" mode=\"%s\" arg1=\"%s\" arg2=\"%s\" \r\n", m, GetIP(r), req.Action, f, req.Mode, req.RequestArg1, req.RequestArg2)
 
 	cmd := exec.Command(f, req.RequestArg1, req.RequestArg2)
