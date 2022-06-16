@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-const VERSION = "0.6.0"
+const VERSION = "0.7.0"
 const serviceName = "QA Manager"
 const serviceDescription = "Simple Service for performing IISResets and DBBackups remotely"
 
