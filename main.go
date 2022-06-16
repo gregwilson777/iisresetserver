@@ -41,6 +41,19 @@ type QAResponse struct {
 	CmdOutput string `json:"command_output"`
 }
 
+func cloud_init_logs(w http.ResponseWriter, r *http.Request) {
+	log.Printf("method=\"cloud_init_logs\" clientip=\"%s\" action=\"version\" function=\"version\" mode=\"\" arg1=\"\" arg2=\"\" version=\"%s\"\r\n", GetIP(r), VERSION)
+
+	content, err := ioutil.ReadFile("C:\\ProgramData\\Amazon\\EC2-Windows\\Launch\\Log") // the file is inside the local directory
+	if err != nil {
+		fmt.Println("Error reading file")
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte(content))
+}
+
 func version(w http.ResponseWriter, r *http.Request) {
 	var resp QAResponse
 	log.Printf("method=\"version\" clientip=\"%s\" action=\"version\" function=\"version\" mode=\"\" arg1=\"\" arg2=\"\" version=\"%s\"\r\n", GetIP(r), VERSION)
@@ -94,7 +107,7 @@ func runfunc(w http.ResponseWriter, r *http.Request, m string, f string, parseIn
 			resp.Error = err1.Error()
 		}
 	}
-	
+
 	log.Printf("method=\"runfunc:%s\" clientip=\"%s\" action=\"%s\" function=\"%s\" mode=\"%s\" arg1=\"%s\" arg2=\"%s\" \r\n", m, GetIP(r), req.Action, f, req.Mode, req.RequestArg1, req.RequestArg2)
 
 	cmd := exec.Command(f, req.RequestArg1, req.RequestArg2)
@@ -116,6 +129,7 @@ func handleRequests(port string) error {
 	http.HandleFunc("/api/v1/dbbackup", dbbackup)
 	http.HandleFunc("/api/v1/ping", ping)
 	http.HandleFunc("/api/v1/version", version)
+	http.HandleFunc("/api/v1/clogs", cloud_init_logs)
 	log.Printf("Server Started, version %s\n\r", VERSION)
 	return http.ListenAndServe(":"+port, nil)
 }
