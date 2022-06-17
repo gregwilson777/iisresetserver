@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -16,7 +17,7 @@ import (
 	"time"
 )
 
-const VERSION = "0.7.0"
+const VERSION = "0.8.0"
 const serviceName = "QA Manager"
 const serviceDescription = "Simple Service for performing IISResets and DBBackups remotely"
 
@@ -44,7 +45,7 @@ type QAResponse struct {
 func cloud_init_logs(w http.ResponseWriter, r *http.Request) {
 	log.Printf("method=\"cloud_init_logs\" clientip=\"%s\" action=\"version\" function=\"version\" mode=\"\" arg1=\"\" arg2=\"\" version=\"%s\"\r\n", GetIP(r), VERSION)
 
-	content, err := ioutil.ReadFile("C:\\ProgramData\\Amazon\\EC2-Windows\\Launch\\Log") // the file is inside the local directory
+	content, err := ioutil.ReadFile("C:\\ProgramData\\Amazon\\EC2-Windows\\Launch\\Log\\UserdataExecution.log") // the file is inside the local directory
 	if err != nil {
 		fmt.Println("Error reading file")
 	}
@@ -52,6 +53,68 @@ func cloud_init_logs(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "text/plain")
 	w.Write([]byte(content))
+}
+
+func getlisting(d string) string {
+
+	buf := new(bytes.Buffer)
+
+	_, err := os.Stat(d)
+	if os.IsNotExist(err) {
+		buf.WriteString(d + " folder does not exist. \n")
+		return buf.String()
+	}
+
+	buf.WriteString("Dir Listing for " + d + ": \n")
+	files, err := ioutil.ReadDir(d)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, f := range files {
+		buf.WriteString(fmt.Sprintf("    - %s %s\n", f.Mode().String(), f.Name()))
+	}
+	return buf.String()
+}
+
+func dirs(w http.ResponseWriter, r *http.Request) {
+	log.Printf("method=\"dirs\" clientip=\"%s\" action=\"version\" function=\"version\" mode=\"\" arg1=\"\" arg2=\"\" version=\"%s\"\r\n", GetIP(r), VERSION)
+
+	buf := new(bytes.Buffer)
+	ls := getlisting("C:\\inetpub\\wwwroot")
+	buf.WriteString(ls)
+	buf.WriteString("\n")
+
+	ls = getlisting("C:\\Users\\Administrator\\Packages")
+	buf.WriteString(ls)
+	buf.WriteString("\n")
+
+	ls = getlisting("C:\\CAFS\\Packages")
+	buf.WriteString(ls)
+	buf.WriteString("\n")
+
+	/*buf := new(bytes.Buffer)
+
+	buf.WriteString("Dir Listing for C:\\inetpub\\wwwroot: \n")
+	files, err := ioutil.ReadDir("C:\\inetpub\\wwwroot")
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, f := range files {
+		buf.WriteString(fmt.Sprintf("    - %s %s\n", f.Mode().String(), f.Name()))
+	}
+
+	buf.WriteString("Dir Listing for C:\\Users\\Administrator\\Packages \n")
+	files, err = ioutil.ReadDir("C:\\Users\\Administrator\\Packages")
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, f := range files {
+		buf.WriteString(fmt.Sprintf("    - %s %s\n", f.Mode().String(), f.Name()))
+	}*/
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write(buf.Bytes())
 }
 
 func version(w http.ResponseWriter, r *http.Request) {
@@ -130,6 +193,7 @@ func handleRequests(port string) error {
 	http.HandleFunc("/api/v1/ping", ping)
 	http.HandleFunc("/api/v1/version", version)
 	http.HandleFunc("/api/v1/clogs", cloud_init_logs)
+	http.HandleFunc("/api/v1/dirs", dirs)
 	log.Printf("Server Started, version %s\n\r", VERSION)
 	return http.ListenAndServe(":"+port, nil)
 }
