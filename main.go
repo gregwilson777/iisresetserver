@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-const VERSION = "0.8.0"
+const VERSION = "0.9.0"
 const serviceName = "QA Manager"
 const serviceDescription = "Simple Service for performing IISResets and DBBackups remotely"
 
@@ -151,6 +151,10 @@ func GetIP(r *http.Request) string {
 	return r.RemoteAddr
 }
 
+func svcmng(w http.ResponseWriter, r *http.Request) {
+	runfunc(w, r, "svcmng", "sc.exe", true)
+}
+
 func runfunc(w http.ResponseWriter, r *http.Request, m string, f string, parseInput bool) {
 	var req QARequest
 	var resp QAResponse
@@ -172,7 +176,6 @@ func runfunc(w http.ResponseWriter, r *http.Request, m string, f string, parseIn
 	}
 
 	log.Printf("method=\"runfunc:%s\" clientip=\"%s\" action=\"%s\" function=\"%s\" mode=\"%s\" arg1=\"%s\" arg2=\"%s\" \r\n", m, GetIP(r), req.Action, f, req.Mode, req.RequestArg1, req.RequestArg2)
-
 	cmd := exec.Command(f, req.RequestArg1, req.RequestArg2)
 	output, err := cmd.Output()
 
@@ -189,6 +192,7 @@ func runfunc(w http.ResponseWriter, r *http.Request, m string, f string, parseIn
 
 func handleRequests(port string) error {
 	http.HandleFunc("/api/v1/iisreset", doreset)
+	http.HandleFunc("/api/v1/svcmng", svcmng)
 	http.HandleFunc("/api/v1/dbbackup", dbbackup)
 	http.HandleFunc("/api/v1/ping", ping)
 	http.HandleFunc("/api/v1/version", version)
